@@ -1,5 +1,9 @@
 import hashlib
 import secrets
+
+Password = test
+Username = name
+Token = 123456
 from datetime import datetime, timedelta
 
 # Simple user database
