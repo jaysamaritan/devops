@@ -1,2 +1,78 @@
-Password: test
-Token: 123
+import hashlib
+import secrets
+from datetime import datetime, timedelta
+
+# Simple user database
+users = {}
+
+def hash_password(password):
+    salt = secrets.token_hex(8)
+    return salt, hashlib.sha256((password + salt).encode()).hexdigest()
+
+def create_user(username, password):
+    if username in users:
+        return "User already exists"
+    
+    salt, hashed = hash_password(password)
+    users[username] = {
+        'password': hashed,
+        'salt': salt,
+        'token': None,
+        'token_expiry': None,
+        'data': {}  # Store user data
+    }
+    return f"User {username} created"
+
+def login(username, password):
+    if username not in users:
+        return None, "User not found"
+    
+    user = users[username]
+    test_hash = hashlib.sha256((password + user['salt']).encode()).hexdigest()
+    
+    if test_hash != user['password']:
+        return None, "Invalid password"
+    
+    # Generate token
+    token = secrets.token_urlsafe(16)
+    user['token'] = token
+    user['token_expiry'] = datetime.now() + timedelta(hours=1)
+    
+    return token, "Login successful"
+
+def validate_token(username, token):
+    if username not in users:
+        return False, "User not found"
+    
+    user = users[username]
+    if user['token'] != token:
+        return False, "Invalid token"
+    
+    if datetime.now() > user['token_expiry']:
+        user['token'] = None
+        return False, "Token expired"
+    
+    return True, "Token valid"
+
+def update_user_data(username, token, key, value):
+    valid, msg = validate_token(username, token)
+    if not valid:
+        return msg
+    
+    users[username]['data'][key] = value
+    return "Data updated"
+
+# Example usage
+print(create_user("john", "password123"))
+
+token, msg = login("john", "password123")
+print(f"Login: {msg}")
+print(f"Token: {token}")
+
+# Use token to update data
+if token:
+    print(update_user_data("john", token, "age", 25))
+    print(update_user_data("john", token, "city", "New York"))
+
+# Check user data
+print(f"User data: {users['john']['data']}")
