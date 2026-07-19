@@ -1,1 +1,2 @@
 Password: test
+Token: 123
